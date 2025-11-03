@@ -66,7 +66,11 @@ class ShopScreen extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => PaymentScreen(package: pkg)));
+                      builder: (_) => PaymentScreen(
+                            package: pkg,
+                            auth: auth,
+                            db: db,
+                          )));
                 },
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -89,8 +93,14 @@ class ShopScreen extends StatelessWidget {
 
 class PaymentScreen extends StatefulWidget {
   final CoinPackage package;
+  final AuthService auth;
+  final DBService db;
 
-  const PaymentScreen({super.key, required this.package});
+  const PaymentScreen(
+      {super.key,
+      required this.package,
+      required this.auth,
+      required this.db});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -175,13 +185,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
-                    // TODO: Handle payment submission
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Submission received.')));
-                    Navigator.of(context).pop();
+                    final result = await widget.db.submitPayment(
+                      widget.auth.currentUser!.uid,
+                      widget.package,
+                      _mobileNumber,
+                      _transactionId,
+                      _paymentMethod,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result['message'])),
+                    );
+                    if (result['success']) {
+                      Navigator.of(context).pop();
+                    }
                   }
                 },
                 child: const Text('Submit'),

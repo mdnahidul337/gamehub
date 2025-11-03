@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'admin_announcements_screen.dart';
+import 'admin_mods_screen.dart';
+import 'admin_tasks_screen.dart';
+import 'admin_users_screen.dart';
+import 'admin_payments_screen.dart';
 
 import '../models/mod_item.dart';
 import '../services/db_service.dart';
@@ -42,6 +47,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _refresh() async {
     await _load();
+  }
+
+  int _currentIndex = 0;
+
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    switch (index) {
+      case 0:
+        // Already on this screen
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminModsScreen()));
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminTasksScreen()));
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminUsersScreen()));
+        break;
+      case 4:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+            builder: (_) => const AdminAnnouncementsScreen()));
+        break;
+      case 5:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminPaymentsScreen()));
+        break;
+    }
   }
 
   @override
@@ -97,6 +135,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.games), label: 'Mods'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Tasks'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.announcement), label: 'Announce'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.payment), label: 'Payments'),
+        ],
       ),
     );
   }

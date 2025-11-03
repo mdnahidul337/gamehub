@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gamehubtest/screens/tasks_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
@@ -9,6 +10,9 @@ import 'downloads_screen.dart';
 import 'list_screen.dart';
 import 'shop_screen.dart';
 import 'top_screen.dart';
+import '../models/mod_item.dart';
+import '../services/db_service.dart';
+import 'mod_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,6 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          if (auth.currentUser != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: Text('Coins: ${auth.currentUser!.coins}'),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.monetization_on),
             onPressed: () {
@@ -83,6 +94,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (_) => const AdminDashboardScreen()));
                 },
               ),
+            const Divider(),
+            ListTile(
+                leading: const Icon(Icons.send),
+                title: const Text('Tasks Screen'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TasksScreen()));
+                }),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.send),
@@ -133,8 +153,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HomeTab extends StatelessWidget {
+class _HomeTab extends StatefulWidget {
   const _HomeTab();
+
+  @override
+  __HomeTabState createState() => __HomeTabState();
+}
+
+class __HomeTabState extends State<_HomeTab> {
+  late Future<Map<String, List<ModItem>>> _items;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = _fetchItems();
+  }
+
+  Future<Map<String, List<ModItem>>> _fetchItems() async {
+    final db = Provider.of<DBService>(context, listen: false);
+    final allItems = await db.listMods();
+    return {
+      'maps': allItems.where((i) => i.category == 'maps').toList(),
+      'mods': allItems.where((i) => i.category == 'mods').toList(),
+      'bus_skins': allItems.where((i) => i.category == 'bus_skins').toList(),
+    };
+  }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -146,41 +189,79 @@ class _HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildModCard() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 150,
-              color: Colors.grey[300],
-              child: const Center(child: Icon(Icons.image, size: 50)),
-            ),
+  Widget _buildItemCard(ModItem item) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ModDetailsScreen(mod: item),
+        ));
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            if (item.screenshots.isNotEmpty)
+              Image.network(
+                item.screenshots.first,
+                height: 150,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 150,
+                  color: Colors.grey[300],
+                  child: const Center(child: Icon(Icons.image, size: 50)),
+                ),
+              ),
             const SizedBox(height: 8),
-            const Text('Mod Title',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text('Publisher Name'),
+            Text(item.title,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(item.publisherName),
           ],
-        ),
+        )),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        _buildSectionTitle("Editor's Choice"),
-        _buildModCard(),
-        _buildModCard(),
-        _buildSectionTitle("New and Update"),
-        _buildModCard(),
-        _buildSectionTitle("Best Skins"),
-        _buildModCard(),
-      ],
+    return FutureBuilder<Map<String, List<ModItem>>>(
+      future: _items,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No items found.'));
+        }
+
+        final items = snapshot.data!;
+        final maps = items['maps'] ?? [];
+        final mods = items['mods'] ?? [];
+        final busSkins = items['bus_skins'] ?? [];
+
+        return ListView(
+          children: [
+            if (maps.isNotEmpty) ...[
+              _buildSectionTitle("Editor's Choice for maps"),
+              ...maps.map(_buildItemCard),
+            ],
+            if (mods.isNotEmpty) ...[
+              _buildSectionTitle("New and Update latest mods"),
+              ...mods.map(_buildItemCard),
+            ],
+            if (busSkins.isNotEmpty) ...[
+              _buildSectionTitle("Best Skins here"),
+              ...busSkins.map(_buildItemCard),
+            ],
+          ],
+        );
+      },
     );
   }
 }

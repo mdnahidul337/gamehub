@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 
+import '../models/coin_package.dart';
 import '../models/mod_item.dart';
 import '../models/task_item.dart';
 
@@ -299,7 +300,7 @@ class DBService {
   /// List recent purchases, sorted by ts desc. Returns list of maps including id.
   Future<List<Map<String, dynamic>>> listRecentPurchases(
       {int limit = 20}) async {
-    final q = _db.child('purchases').orderByChild('ts').limitToLast(limit);
+    final q = _db.child('payments').orderByChild('ts').limitToLast(limit);
     final event = await q.once();
     final Map? val = event.snapshot.value as Map?;
     if (val == null) return [];
@@ -331,5 +332,39 @@ class DBService {
   Future<void> sendChatMessage(
       String roomId, Map<String, dynamic> message) async {
     await _db.child('chats/$roomId').push().set(message);
+  }
+
+  // --- Payment admin ---
+  Future<void> approvePayment(String paymentId, String uid, int amount) async {
+    await _db.child('payments/$paymentId').update({'status': 'approved'});
+    await incrementUserCoins(uid, amount);
+  }
+
+  Future<void> rejectPayment(String paymentId) async {
+    await _db.child('payments/$paymentId').update({'status': 'rejected'});
+  }
+
+  Future<Map<String, dynamic>> submitPayment(
+      String uid,
+      CoinPackage package,
+      String mobileNumber,
+      String transactionId,
+      String paymentMethod) async {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final payment = {
+        'uid': uid,
+        'package': package.toMap(),
+        'mobileNumber': mobileNumber,
+        'transactionId': transactionId,
+        'paymentMethod': paymentMethod,
+        'status': 'pending',
+        'ts': now,
+      };
+      await _db.child('payments').push().set(payment);
+      return {'success': true, 'message': 'Submission received.'};
+    } catch (e) {
+      return {'success': false, 'message': 'Submission failed.'};
+    }
   }
 }

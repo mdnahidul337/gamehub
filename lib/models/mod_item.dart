@@ -10,6 +10,7 @@ class ModItem {
   final int? createdAt;
   final bool unlisted;
   final int downloads;
+  final String publisherName;
 
   ModItem({
     this.id,
@@ -23,6 +24,7 @@ class ModItem {
     this.createdAt,
     this.unlisted = false,
     this.downloads = 0,
+    this.publisherName = 'Admin', // Default value
   });
 
   ModItem copyWith({
@@ -37,6 +39,7 @@ class ModItem {
     int? createdAt,
     bool? unlisted,
     int? downloads,
+    String? publisherName,
   }) {
     return ModItem(
       id: id ?? this.id,
@@ -50,6 +53,7 @@ class ModItem {
       createdAt: createdAt ?? this.createdAt,
       unlisted: unlisted ?? this.unlisted,
       downloads: downloads ?? this.downloads,
+      publisherName: publisherName ?? this.publisherName,
     );
   }
 
@@ -65,6 +69,7 @@ class ModItem {
       'createdAt': createdAt ?? DateTime.now().millisecondsSinceEpoch,
       'unlisted': unlisted,
       'downloads': downloads,
+      'publisherName': publisherName,
     };
   }
 
@@ -88,6 +93,7 @@ class ModItem {
       downloads: (m['downloads'] is int)
           ? m['downloads']
           : int.tryParse('${m['downloads']}') ?? 0,
+      publisherName: m['publisherName'] ?? 'Admin',
     );
   }
 }

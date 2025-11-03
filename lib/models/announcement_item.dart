@@ -15,11 +15,11 @@ class AnnouncementItem {
 
   factory AnnouncementItem.fromMap(Map<String, dynamic> map) {
     return AnnouncementItem(
-      id: map['id'],
-      title: map['title'],
-      content: map['content'],
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      content: map['content'] ?? '',
       imageUrl: map['imageUrl'],
-      timestamp: map['ts'],
+      timestamp: map['ts'] ?? 0,
     );
   }
 }

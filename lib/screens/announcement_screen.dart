@@ -3,9 +3,50 @@ import 'package:provider/provider.dart';
 
 import '../models/announcement_item.dart';
 import '../services/db_service.dart';
+import 'home_screen.dart';
+import 'mods_screen.dart';
+import 'tasks_screen.dart';
+import 'admin_users_screen.dart';
+import 'announcement_details_screen.dart';
 
-class AnnouncementScreen extends StatelessWidget {
+class AnnouncementScreen extends StatefulWidget {
   const AnnouncementScreen({super.key});
+
+  @override
+  State<AnnouncementScreen> createState() => _AnnouncementScreenState();
+}
+
+class _AnnouncementScreenState extends State<AnnouncementScreen> {
+  int _currentIndex = 4; // Set to 'Announce'
+
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    // In a real app, you'd navigate to the other screens.
+    // This is a simplified example.
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()));
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const ModsScreen()));
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const TasksScreen()));
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminUsersScreen()));
+        break;
+      case 4:
+        // Already on this screen
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,37 +110,6 @@ class AnnouncementScreen extends StatelessWidget {
             },
           );
         },
-      ),
-    );
-  }
-}
-
-class AnnouncementDetailsScreen extends StatelessWidget {
-  final AnnouncementItem announcement;
-
-  const AnnouncementDetailsScreen({super.key, required this.announcement});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(announcement.title),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (announcement.imageUrl != null)
-              Image.network(announcement.imageUrl!),
-            const SizedBox(height: 16),
-            Text(announcement.title,
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(announcement.content),
-          ],
-        ),
       ),
     );
   }
