@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "89486258197",
+    "firebase_url": "https://gamehubbd-29727-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "gamehubbd-29727",
+    "storage_bucket": "gamehubbd-29727.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89486258197:android:59aa39b3a606dc82cf5e1c",
+        "android_client_info": {
+          "package_name": "com.example.gamehub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "89486258197-vtm3iinvebg3ikmp0hgitrrdca8963j0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ_qEDx4-GufYuQXWqIgF_I2LiU1iBGWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "89486258197-vtm3iinvebg3ikmp0hgitrrdca8963j0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "89486258197-ntm8da67l54qpk070ush6ecadpuqo5fl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.gamehub"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
