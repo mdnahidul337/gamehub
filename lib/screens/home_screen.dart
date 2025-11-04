@@ -52,6 +52,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return db.listMods();
   }
 
+  Future<void> _refreshData() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    await auth.refreshCurrentUser();
+    setState(() {
+      _modsFuture = _fetchMods();
+    });
+  }
+
   void _onSearchChanged() {
     _modsFuture.then((mods) {
       final query = _searchController.text.toLowerCase();
@@ -79,11 +87,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           if (auth.currentUser != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Center(
-                child: Text('Coins: ${auth.currentUser!.coins}'),
-              ),
+            Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Center(
+                    child: Text('Coins: ${auth.currentUser!.coins}'),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _refreshData,
+                ),
+              ],
             ),
           IconButton(
             icon: const Icon(Icons.monetization_on),
@@ -259,6 +275,12 @@ class __HomeTabState extends State<_HomeTab> {
     _showDailyRewardDialog();
   }
 
+  Future<void> _refreshItems() async {
+    setState(() {
+      _items = _fetchItems();
+    });
+  }
+
   Future<void> _showDailyRewardDialog() async {
     final prefs = await SharedPreferences.getInstance();
     final lastClaimed = prefs.getString('last_claimed_daily_reward');
@@ -412,7 +434,9 @@ class __HomeTabState extends State<_HomeTab> {
       );
     }
 
-    return FutureBuilder<Map<String, List<ModItem>>>(
+    return RefreshIndicator(
+      onRefresh: _refreshItems,
+      child: FutureBuilder<Map<String, List<ModItem>>>(
       future: _items,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -447,6 +471,7 @@ class __HomeTabState extends State<_HomeTab> {
           ],
         );
       },
+      ),
     );
   }
 }

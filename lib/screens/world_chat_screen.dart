@@ -14,7 +14,23 @@ class WorldChatScreen extends StatefulWidget {
 
 class _WorldChatScreenState extends State<WorldChatScreen> {
   final _messageController = TextEditingController();
-  bool _isJoined = false;
+  bool? _isJoined;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfJoined();
+  }
+
+  Future<void> _checkIfJoined() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final db = Provider.of<DBService>(context, listen: false);
+    final uid = auth.currentUser!.uid;
+    final isMember = await db.isChatMember('world_chat', uid);
+    setState(() {
+      _isJoined = isMember;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +99,9 @@ class _WorldChatScreenState extends State<WorldChatScreen> {
               },
             ),
           ),
-          if (_isJoined)
+          if (_isJoined == null)
+            const Center(child: CircularProgressIndicator())
+          else if (_isJoined!)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
@@ -118,7 +136,8 @@ class _WorldChatScreenState extends State<WorldChatScreen> {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  await db.joinChat('world_chat', uid, username);
                   setState(() {
                     _isJoined = true;
                   });

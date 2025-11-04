@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/mod_item.dart';
 import '../services/auth_service.dart';
 import '../services/db_service.dart';
+import '../services/download_service.dart';
+import '../widgets/reviews_section.dart';
 
 class ModDetailsScreen extends StatefulWidget {
   final ModItem mod;
@@ -16,6 +18,7 @@ class ModDetailsScreen extends StatefulWidget {
 
 class _ModDetailsScreenState extends State<ModDetailsScreen> {
   late Future<bool> _isPurchasedFuture;
+  bool _downloadFailed = false;
 
   @override
   void initState() {
@@ -48,16 +51,18 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
     final db = Provider.of<DBService>(context, listen: false);
+    final downloadService = Provider.of<DownloadService>(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.mod.title)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.mod.screenshots.isNotEmpty)
-              FadeInImage.assetNetwork(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.mod.screenshots.isNotEmpty)
+                FadeInImage.assetNetwork(
                 placeholder: 'assets/images/placeholder.png',
                 image: widget.mod.screenshots.first,
                 height: 200,
@@ -95,10 +100,36 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
                   }
                   final isPurchased = snapshot.data ?? false;
                   if (isPurchased || widget.mod.price == 0) {
-                    return ElevatedButton(
-                      onPressed: () => _launchURL(widget.mod.fileUrl!),
-                      child: const Text('Download'),
-                    );
+                    if (_downloadFailed) {
+                      return ElevatedButton(
+                        onPressed: () => _launchURL(widget.mod.fileUrl!),
+                        child: const Text('Open Link'),
+                      );
+                    } else {
+                      return ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            await downloadService.download(
+                              widget.mod.id!,
+                              widget.mod.fileUrl!,
+                              widget.mod.title,
+                              widget.mod.category,
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Download started...')),
+                            );
+                          } catch (e) {
+                            setState(() {
+                              _downloadFailed = true;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Download failed: $e')),
+                            );
+                          }
+                        },
+                        child: const Text('Download'),
+                      );
+                    }
                   } else {
                     return ElevatedButton(
                       onPressed: () async {
@@ -118,7 +149,10 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
                   }
                 },
               ),
-          ],
+              const SizedBox(height: 20),
+              if (widget.mod.id != null) ReviewsSection(modId: widget.mod.id!),
+            ],
+          ),
         ),
       ),
     );

@@ -230,7 +230,7 @@ class _ModsScreenState extends State<ModsScreen> {
                                           ? Uri.parse(url).pathSegments.last
                                           : '${m.id}.bin';
                                   await downloadService.download(
-                                      m.id!, url, fileName);
+                                      m.id!, url, fileName, m.category);
                                   // increment downloads count on enqueue (we consider started)
                                   await _db.incrementDownloads(m.id!);
                                   _refresh();

@@ -83,14 +83,36 @@ class DownloadService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> download(String modId, String url, String fileName) async {
+  Future<void> download(String modId, String url, String fileName, String category) async {
     if (url.isEmpty) throw ArgumentError('url empty');
     final ok = await _ensurePermission();
     if (!ok) throw Exception('Storage permission denied');
-    final savedDir = await _getSaveDir();
+    
+    final baseDir = await _getSaveDir();
+    
+    String subfolder;
+    switch (category.toLowerCase()) {
+      case 'mods':
+        subfolder = 'mods';
+        break;
+      case 'bus_skins':
+        subfolder = 'bus_skins';
+        break;
+      case 'map':
+        subfolder = 'map';
+        break;
+      default:
+        subfolder = 'others'; // A fallback folder
+    }
+
+    final savedDir = Directory('$baseDir/GameHub/$subfolder');
+    if (!await savedDir.exists()) {
+      await savedDir.create(recursive: true);
+    }
+
     final taskId = await FlutterDownloader.enqueue(
       url: url,
-      savedDir: savedDir,
+      savedDir: savedDir.path,
       fileName: fileName,
       showNotification: true,
       openFileFromNotification: true,

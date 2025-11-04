@@ -6,9 +6,30 @@ import '../services/db_service.dart';
 import '../services/auth_service.dart';
 import '../models/app_user.dart';
 import '../utils/theme.dart';
+import 'world_chat_screen.dart';
 
-class ChatsScreen extends StatelessWidget {
+class ChatsScreen extends StatefulWidget {
   const ChatsScreen({super.key});
+
+  @override
+  State<ChatsScreen> createState() => _ChatsScreenState();
+}
+
+class _ChatsScreenState extends State<ChatsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +38,27 @@ class ChatsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Support Chat'),
+        title: const Text('Chats'),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: AppTheme.primaryGradient,
           ),
         ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'World Chat'),
+            Tab(text: 'Support'),
+          ],
+        ),
       ),
-      body: isAdmin ? const _AdminChatList() : const _UserChat(),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          const WorldChatScreen(),
+          isAdmin ? const _AdminChatList() : const _UserChat(),
+        ],
+      ),
     );
   }
 }
@@ -259,9 +293,7 @@ class _ChatRoomState extends State<_ChatRoom> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 10, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: mine
-                              ? AppTheme.mainBlue
-                              : AppTheme.lightGray,
+                          color: mine ? AppTheme.mainBlue : AppTheme.lightGray,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

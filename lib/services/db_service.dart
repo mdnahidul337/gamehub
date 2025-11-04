@@ -2,6 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 
 import '../models/coin_package.dart';
 import '../models/mod_item.dart';
+import '../models/review.dart';
 import '../models/task_item.dart';
 
 class DBService {
@@ -109,8 +110,15 @@ class DBService {
           final value = post as int;
           return Transaction.success(value + price);
         });
-      } catch (_) {}
-      return {'success': false, 'message': 'Purchase failed'};
+      } catch (e) {
+        // Log this critical error, as user may have lost coins
+        print(
+            'CRITICAL: Failed to refund user $uid for $price coins after a failed purchase. Error: $e');
+      }
+      return {
+        'success': false,
+        'message': 'Purchase failed. If coins were deducted, please contact support.'
+      };
     }
   }
 
@@ -336,6 +344,18 @@ class DBService {
     await _db.child('chats/$roomId').push().set(message);
   }
 
+  Future<void> joinChat(String roomId, String uid, String username) async {
+    await _db.child('chat_members/$roomId/$uid').set({
+      'username': username,
+      'joinedAt': DateTime.now().millisecondsSinceEpoch
+    });
+  }
+
+  Future<bool> isChatMember(String roomId, String uid) async {
+    final event = await _db.child('chat_members/$roomId/$uid').once();
+    return event.snapshot.value != null;
+  }
+
   Future<String> createModRequest(Map<String, dynamic> request) async {
     final ref = _db.child('mod_requests').push();
     final id = ref.key!;
@@ -382,5 +402,22 @@ class DBService {
     } catch (e) {
       return {'success': false, 'message': 'Submission failed.'};
     }
+  }
+
+  // --- Review and Reply System ---
+
+  /// Add a review for a mod.
+  Future<void> addReview(String modId, Review review) async {
+    await _db.child('reviews/$modId').push().set(review.toMap());
+  }
+
+  /// Add a reply to a review.
+  Future<void> addReply(String modId, String reviewId, Reply reply) async {
+    await _db.child('reviews/$modId/$reviewId/replies').push().set(reply.toMap());
+  }
+
+  /// Stream reviews for a mod.
+  Stream<DatabaseEvent> streamReviews(String modId) {
+    return _db.child('reviews/$modId').onValue;
   }
 }
