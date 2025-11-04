@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Workflow Guide</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Font: Inter --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use Inter as the default font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Modern RGB Color Scheme */
+        :root {
+            --primary: 79, 70, 229;    /* Indigo */
+            --secondary: 139, 92, 246; /* Purple */
+            --accent: 236, 72, 153;    /* Pink */
+            --success: 16, 185, 129;   /* Emerald */
+            --warning: 245, 158, 11;   /* Amber */
+            --error: 239, 68, 68;      /* Red */
+            --dark: 17, 24, 39;        /* Gray-900 */
+            --light: 243, 244, 246;    /* Gray-100 */
+        }
+        
+        .bg-primary {
+            background-color: rgb(var(--primary));
+        }
+        
+        .bg-secondary {
+            background-color: rgb(var(--secondary));
+        }
+        
+        .bg-accent {
+            background-color: rgb(var(--accent));
+        }
+        
+        .bg-success {
+            background-color: rgb(var(--success));
+        }
+        
+        .bg-warning {
+            background-color: rgb(var(--warning));
+        }
+        
+        .bg-error {
+            background-color: rgb(var(--error));
+        }
+        
+        .bg-dark {
+            background-color: rgb(var(--dark));
+        }
+        
+        .bg-light {
+            background-color: rgb(var(--light));
+        }
+        
+        .text-primary {
+            color: rgb(var(--primary));
+        }
+        
+        .text-secondary {
+            color: rgb(var(--secondary));
+        }
+        
+        .text-accent {
+            color: rgb(var(--accent));
+        }
+        
+        .text-success {
+            color: rgb(var(--success));
+        }
+        
+        .text-warning {
+            color: rgb(var(--warning));
+        }
+        
+        .text-error {
+            color: rgb(var(--error));
+        }
+        
+        .border-primary {
+            border-color: rgb(var(--primary));
+        }
+        
+        .border-secondary {
+            border-color: rgb(var(--secondary));
+        }
+        
+        .border-accent {
+            border-color: rgb(var(--accent));
+        }
+        
+        .hover\:bg-primary:hover {
+            background-color: rgb(var(--primary));
+        }
+        
+        .hover\:bg-secondary:hover {
+            background-color: rgb(var(--secondary));
+        }
+        
+        .hover\:bg-accent:hover {
+            background-color: rgb(var(--accent));
+        }
+        
+        /* Custom style for code blocks */
+        .code-block-wrapper {
+            position: relative;
+            /* Ensure the wrapper is a positioning context for absolute button */
+        }
+        .code-block-wrapper pre {
+            /* Add padding to the right to make space for the button */
+            padding-right: 3.5rem; /* Adjust as needed */
+            min-height: 4.5rem; /* Ensure pre block has a minimum height */
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.75rem; /* Adjusted for better vertical alignment */
+            right: 0.75rem; /* Adjusted for better horizontal alignment */
+            display: flex; /* Use flexbox to align icon and text */
+            align-items: center;
+            gap: 0.25rem; /* Space between icon and text */
+            padding: 0.5rem 0.75rem; /* More balanced padding */
+        }
+        .copy-text {
+            /* Ensure text is visible only when intended */
+            display: none;
+        }
+        /* Show copy text on medium screens and up */
+        @media (min-width: 768px) {
+            .copy-text {
+                display: inline;
+            }
+        }
+
+        /* Tab Styles */
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            background-color: rgb(55, 65, 81); /* gray-700 */
+            color: rgb(209, 213, 219); /* gray-300 */
+            border: 2px solid transparent;
+        }
+        .tab-btn.active-tab {
+            background: linear-gradient(135deg, rgb(var(--primary)), rgb(var(--secondary)));
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .tab-btn:hover:not(.active-tab) {
+            background-color: rgb(75, 85, 99); /* gray-600 */
+        }
+        
+        /* Accordion Styles */
+        details > summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: white;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details .accordion-content {
+            padding-top: 1rem;
+        }
+        details summary .icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        details[open] summary .icon {
+            transform: rotate(45deg);
+        }
+        
+        /* Section headers with gradient */
+        .section-header {
+            background: linear-gradient(90deg, rgb(var(--primary)), rgb(var(--secondary)));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Enhanced code blocks */
+        .code-block-wrapper pre {
+            background: linear-gradient(135deg, rgb(17, 24, 39), rgb(30, 41, 59));
+            border-left: 4px solid rgb(var(--primary));
+        }
+        
+        /* Enhanced copy button */
+        .copy-btn {
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(4px);
+            color: rgb(209, 213, 219);
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: rgb(var(--primary));
+            color: white;
+        }
+        
+        /* Input field styling */
+        .modern-input {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgb(55, 65, 81);
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .modern-input:focus {
+            border-color: rgb(var(--primary));
+            box-shadow: 0 0 0 3px rgba(var(--primary), 0.2);
+            outline: none;
+        }
+        
+        /* Enhanced details/summary */
+        details {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(17, 24, 39, 0.9));
+            border: 1px solid rgb(55, 65, 81);
+            transition: all 0.3s ease;
+        }
+        
+        details[open] {
+            border-color: rgb(var(--primary));
+            box-shadow: 0 4px 6px -1px rgba(var(--primary), 0.1);
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-new {
+            background-color: rgb(var(--success));
+        }
+        
+        .status-update {
+            background-color: rgb(var(--primary));
+        }
+        
+        .status-problem {
+            background-color: rgb(var(--warning));
+        }
+        
+        /* Pulse animation for active elements */
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(var(--primary), 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(var(--primary), 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-dark text-gray-200 antialiased">
+
+    <!-- Main Container --><div class="container mx-auto max-w-3xl px-4 py-12 md:py-20">
+
+        <!-- Header --><header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold text-white md:text-5xl">
+                Git Workflow Guide
+            </h1>
+            <p class="mt-4 text-lg text-gray-400">
+                A modern, clean guide to managing your Git projects.
+            </p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="mb-10 flex flex-wrap justify-center gap-4">
+            <button class="tab-btn active-tab pulse" data-tab-target="#tab-new">
+                <span class="status-indicator status-new"></span>
+                <span class="mr-2 hidden sm:inline">🚀</span>
+                New Project
+            </button>
+            <button class="tab-btn" data-tab-target="#tab-update">
+                <span class="status-indicator status-update"></span>
+                <span class="mr-2 hidden sm:inline">🔄</span>
+                Update Project
+            </button>
+            <button class="tab-btn" data-tab-target="#tab-problems">
+                <span class="status-indicator status-problem"></span>
+                <span class="mr-2 hidden sm:inline">⚠️</span>
+                Common Problems
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-content-wrapper">
+
+            <!-- Panel 1: New Project (First Release) -->
+            <div id="tab-new" class="tab-panel space-y-6">
+                <section class="rounded-xl bg-gray-800 shadow-lg p-6">
+                    <h2 class="section-header text-2xl font-semibold mb-4">How to Start a New Project</h2>
+                    <p class="text-gray-300 mb-4">Follow these steps to get your new project folder onto GitHub for the first time.</p>
+                </section>
+
+                <section class="rounded-xl bg-gray-800 shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-white">Step 1: Initialize Git</h3>
+                    <p class="mt-2 text-gray-300">In your project's root folder, run this command to create a new Git repository.</p>
+                    <div class="code-block-wrapper mt-4">
+                        <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git init</code></pre>
+                        <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                            <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                            <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            <span class="copy-text">Copy</span>
+                        </button>
+                    </div>
+                </section>
+                
+                <section class="rounded-xl bg-gray-800 shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-white">Step 2: Make Your First Commit</h3>
+                    <p class="mt-2 text-gray-300">Add all your files and create the first "snapshot" (commit) of your project.</p>
+                    <div class="code-block-wrapper mt-4">
+                        <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git add .
+git commit -m "Initial commit"</code></pre>
+                        <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                            <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                            <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            <span class="copy-text">Copy</span>
+                        </button>
+                    </div>
+                </section>
+                
+                <section class="rounded-xl bg-gray-800 shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-white">Step 3: Link to GitHub</h3>
+                    <p class="mt-2 text-gray-300">1. Go to GitHub and create a new, empty repository (don't add a README or .gitignore).</p>
+                    <p class="mt-2 text-gray-300">2. Copy the URL GitHub gives you.</p>
+                    <p class="mt-2 text-gray-300">3. Paste your URL below. The command will update live.</p>
+                    
+                    <!-- Input field -->
+                    <div class="mt-6">
+                        <label for="repo-url-input" class="mb-2 block text-sm font-medium text-gray-400">Your GitHub Repo URL:</label>
+                        <input type="text" id="repo-url-input" class="modern-input w-full rounded-lg p-2.5 placeholder-gray-400" placeholder="https://github.com/your-username/your-repo.git">
+                    </div>
+
+                    <div class="code-block-wrapper mt-4">
+                        <pre class="rounded-lg bg-gray-900 p-4"><code id="repo-url-output" class="language-bash">git branch -M main
+git remote add origin &lt;your-repo-url&gt;</code></pre>
+                        <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                            <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                            <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            <span class="copy-text">Copy</span>
+                        </button>
+                    </div>
+                </section>
+                
+                <section class="rounded-xl bg-gray-800 shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-white">Step 4: Push to GitHub</h3>
+                    <p class="mt-2 text-gray-300">Send your "Initial commit" up to GitHub. The <code class="rounded bg-gray-700 px-1 py-0.5 text-sm">-u</code> flag sets it as the default, so next time you can just run <code class="rounded bg-gray-700 px-1 py-0.5 text-sm">git push</code>.</p>
+                    <div class="code-block-wrapper mt-4">
+                        <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git push -u origin main</code></pre>
+                        <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                            <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                            <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            <span class="copy-text">Copy</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Panel 2: Update Existing Project (This is the original content) -->
+            <main id="tab-update" class="tab-panel hidden space-y-6">
+                <!-- Step 1: Status --><section class="rounded-xl bg-gray-800 shadow-lg transition-all duration-300 hover:shadow-xl">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <span class="mr-4 text-2xl">🧩</span>
+                            <h2 class="text-2xl font-semibold text-white">Step 1: Check Status</h2>
+                        </div>
+                        <p class="mt-2 text-gray-300">
+                            See which files are changed or new before you do anything.
+                        </p>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git status</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <!-- Copy Icon SVG --><svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" />
+                                </svg>
+                                <!-- Check Icon SVG (hidden by default) --><svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 2: Add --><section class="rounded-xl bg-gray-800 shadow-lg transition-all duration-300 hover:shadow-xl">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <span class="mr-4 text-2xl">🧰</span>
+                            <h2 class="text-2xl font-semibold text-white">Step 2: Add All Files</h2>
+                        </div>
+                        <p class="mt-2 text-gray-300">
+                            Add everything (new and changed files) to the staging area.
+                        </p>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git add .</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 3: Commit --><section class="rounded-xl bg-gray-800 shadow-lg transition-all duration-300 hover:shadow-xl">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <span class="mr-4 text-2xl">💬</span>
+                            <h2 class="text-2xl font-semibold text-white">Step 3: Commit Changes</h2>
+                        </div>
+                        <p class="mt-2 text-gray-300">
+                            Type your commit message below. The command will update live.
+                        </p>
+                        <!-- Input field --><div class="mt-4">
+                            <label for="commit-input" class="mb-2 block text-sm font-medium text-gray-400">Your Commit Message:</label>
+                            <input type="text" id="commit-input" class="modern-input w-full rounded-lg p-2.5 placeholder-gray-400" placeholder="e.g., Updated the landing page">
+                        </div>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code id="commit-output" class="language-bash">git commit -m "Your descriptive message"</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 4: Pull --><section class="rounded-xl bg-gray-800 shadow-lg transition-all duration-300 hover:shadow-xl">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <span class="mr-4 text-2xl">🔄</span>
+                            <h2 class="text-2xl font-semibold text-white">Step 4: Pull Remote Changes</h2>
+                        </div>
+                        <p class="mt-2 text-gray-300">
+                            Before pushing, always sync with GitHub first. Using 
+                            <code class="rounded bg-gray-700 px-1 py-0.5 text-sm">--rebase</code>
+                            keeps the history clean.
+                        </p>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git pull origin main --rebase</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Step 5: Conflicts --><section class="rounded-xl bg-gray-800 shadow-lg transition-all duration-300 hover:shadow-xl">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <span class="mr-4 text-2xl">⚠️</span>
+                            <h2 class="text-2xl font-semibold text-white">Step 5: Fix Conflicts (If any)</h2>
+                        </div>
+                        <p class="mt-2 text-gray-300">
+                            If you have a conflict, open the file(s) and look for markers like this. Edit the file to keep the code you want, then delete the markers.
+                        </p>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code class="language-diff">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+Your local changes
+=======
+Remote changes from GitHub
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                        <p class="mt-4 text-gray-300">
+                            After fixing all conflicts, run these commands to continue:
+                        </p>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git add .
+git rebase --continue</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 6: Push --><section class="rounded-xl bg-gray-800 shadow-lg transition-all duration-300 hover:shadow-xl">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <span class="mr-4 text-2xl">🚀</span>
+                            <h2 class="text-2xl font-semibold text-white">Step 6: Push to GitHub</h2>
+                        </div>
+                        <p class="mt-2 text-gray-300">
+                            Finally, push your new, synced commits up to GitHub.
+                        </p>
+                        <div class="code-block-wrapper mt-4">
+                            <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git push origin main</code></pre>
+                            <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Panel 3: Common Problems -->
+            <div id="tab-problems" class="tab-panel hidden space-y-6">
+                <section class="rounded-xl bg-gray-800 shadow-lg p-6">
+                    <h2 class="section-header text-2xl font-semibold mb-4">Common Problems & Solutions</h2>
+                    <p class="text-gray-300 mb-6">Here are some common issues you might face when uploading files and how to solve them.</p>
+
+                    <div class="space-y-4">
+                        <!-- Problem 1 -->
+                        <details class="rounded-lg p-4">
+                            <summary>
+                                <span>"Failed to push. Remote is ahead."</span>
+                                <span class="icon text-xl text-primary">+</span>
+                            </summary>
+                            <div class="accordion-content text-gray-300 border-t border-gray-600 pt-4 mt-4">
+                                <p><strong>Problem:</strong> You see an error like <code class="rounded bg-gray-900 px-1 py-0.5 text-sm">Updates were rejected because the remote contains work that you do not have locally</code>.</p>
+                                <p class="mt-2"><strong>Solution:</strong> This is very common! It just means someone else pushed code to GitHub while you were working. You just need to sync their changes *before* you push yours.</p>
+                                <p class="mt-2">This is exactly what Step 4 in the "Update Project" tab is for!</p>
+                                <div class="code-block-wrapper mt-4">
+                                    <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git pull origin main --rebase</code></pre>
+                                    <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                        <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                        <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                        <span class="copy-text">Copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Problem 2 -->
+                        <details class="rounded-lg p-4">
+                            <summary>
+                                <span>"I made a typo in my last commit message."</span>
+                                <span class="icon text-xl text-primary">+</span>
+                            </summary>
+                            <div class="accordion-content text-gray-300 border-t border-gray-600 pt-4 mt-4">
+                                <p><strong>Problem:</strong> You just committed, but you spelled something wrong in the message (e.g., "Fiexd bug").</p>
+                                <p class="mt-2"><strong>Solution:</strong> As long as you have <strong class="text-warning">not pushed</strong> the commit to GitHub yet, this is an easy fix. Just run this command:</p>
+                                <div class="code-block-wrapper mt-4">
+                                    <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git commit --amend -m "My new correct message"</code></pre>
+                                    <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                        <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                        <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                        <span class="copy-text">Copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Problem 3 -->
+                        <details class="rounded-lg p-4">
+                            <summary>
+                                <span>"I forgot to add a file to my last commit."</span>
+                                <span class="icon text-xl text-primary">+</span>
+                            </summary>
+                            <div class="accordion-content text-gray-300 border-t border-gray-600 pt-4 mt-4">
+                                <p><strong>Problem:</strong> You committed, but then realized you left out a file that should have been included.</p>
+                                <p class="mt-2"><strong>Solution:</strong> Again, as long as you <strong class="text-warning">have not pushed</strong>, this is simple. Just add the file(s) and run the "amend" command. It will add the new files to your *previous* commit.</p>
+                                <div class="code-block-wrapper mt-4">
+                                    <pre class="rounded-lg bg-gray-900 p-4"><code class="language-bash">git add path/to/forgotten-file.js
+git commit --amend --no-edit</code></pre>
+                                    <button aria-label="Copy code" class="copy-btn rounded-md text-xs font-medium transition">
+                                        <svg class="copy-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v8.25A2.25 2.25 0 006 16.5h2.25m8.25-8.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-7.5A2.25 2.25 0 018.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 00-2.25 2.25v6.75A2.25 2.25 0 009.75 18h6a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25z" /></svg>
+                                        <svg class="check-icon hidden h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                        <span class="copy-text">Copy</span>
+                                    </button>
+                                </div>
+                                <p class="mt-2 text-sm">(The <code class="rounded bg-gray-900 px-1 py-0.5 text-xs">--no-edit</code> flag just re-uses your last commit message automatically.)</p>
+                            </div>
+                        </details>
+                    </div>
+
+                </section>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- JavaScript for Tabs and Copy Button --><script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- Tab Switching Logic ---
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Get the target panel ID from data attribute
+                    const targetId = btn.getAttribute('data-tab-target'); // e.g., "#tab-new"
+                    
+                    // Deactivate all buttons
+                    tabButtons.forEach(b => b.classList.remove('active-tab'));
+                    // Activate the clicked button
+                    btn.classList.add('active-tab');
+
+                    // Hide all panels
+                    tabPanels.forEach(panel => {
+                        if (panel.id === targetId.substring(1)) {
+                            // Show the target panel
+                            panel.classList.remove('hidden');
+                        } else {
+                            // Hide other panels
+                            panel.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            // --- Original Copy Button & Commit Input Logic ---
+            const copyButtons = document.querySelectorAll('.copy-btn');
+            const commitInput = document.getElementById('commit-input');
+            const commitOutput = document.getElementById('commit-output');
+            const repoUrlInput = document.getElementById('repo-url-input');
+            const repoUrlOutput = document.getElementById('repo-url-output');
+
+            // --- Listener for the commit input field ---
+            if (commitInput && commitOutput) {
+                // Initialize with placeholder text
+                let commitPlaceholder = commitInput.placeholder || "Your descriptive message";
+                commitOutput.innerText = `git commit -m "${commitPlaceholder}"`;
+
+                commitInput.addEventListener('input', () => {
+                    // Get the value, or use a placeholder if empty
+                    const message = commitInput.value.trim() || commitPlaceholder;
+                    // Update the code block text, ensuring quotes are kept
+                    commitOutput.innerText = `git commit -m "${message}"`;
+                });
+            }
+
+            // --- Listener for the repo URL input field ---
+            if (repoUrlInput && repoUrlOutput) {
+                // Initialize with placeholder text
+                let repoPlaceholder = "<your-repo-url>"; // Default placeholder if input is empty
+                repoUrlOutput.innerText = `git branch -M main\ngit remote add origin ${repoPlaceholder}`;
+
+                repoUrlInput.addEventListener('input', () => {
+                    // Get the value, or use a placeholder if empty
+                    const url = repoUrlInput.value.trim();
+                    // Update the code block text
+                    repoUrlOutput.innerText = `git branch -M main\ngit remote add origin ${url || repoPlaceholder}`;
+                });
+            }
+
+            // --- Listener for all copy buttons ---
+            copyButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const btn = e.currentTarget;
+                    // Find the code block within the same wrapper
+                    const wrapper = btn.closest('.code-block-wrapper');
+                    let textToCopy = '';
+
+                    // Find the code element within the same wrapper
+                    const codeElement = wrapper.querySelector('code');
+
+                    // Check if this is the special commit-output block
+                    if (codeElement && (codeElement.id === 'commit-output' || codeElement.id === 'repo-url-output')) {
+                        // Use the *current* text of the output block
+                        textToCopy = codeElement.innerText;
+                    } else if (codeElement) {
+                        // Standard behavior for all other code blocks
+                        textToCopy = codeElement.innerText;
+                    } else {
+                        // Fallback in case structure is different
+                        textToCopy = wrapper.querySelector('pre').innerText;
+                    }
+
+                    // Use a temporary textarea to copy
+                    const textarea = document.createElement('textarea');
+                    textarea.value = textToCopy;
+                    textarea.setAttribute('readonly', '');
+                    textarea.style.position = 'absolute';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        
+                        // Show feedback
+                        const copyIcon = btn.querySelector('.copy-icon');
+                        const checkIcon = btn.querySelector('.check-icon');
+                        const copyText = btn.querySelector('.copy-text');
+                        
+                        copyIcon.classList.add('hidden');
+                        checkIcon.classList.remove('hidden');
+                        if (copyText) {
+                            copyText.textContent = 'Copied!';
+                        }
+
+                        // Revert after 2 seconds
+                        setTimeout(() => {
+                            copyIcon.classList.remove('hidden');
+                            checkIcon.classList.add('hidden');
+                            if (copyText) {
+                                copyText.textContent = 'Copy';
+                            }
+                        }, 2000);
+
+                    } catch (err) {
+                        console.error('Failed to copy text: ', err);
+                    }
+
+                    document.body.removeChild(textarea);
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
