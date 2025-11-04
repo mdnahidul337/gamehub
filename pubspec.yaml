@@ -21,6 +21,9 @@ dependencies:
   permission_handler: ^10.4.0
   path_provider: ^2.0.15
   change_app_package_name: ^1.5.0
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.5.3
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +35,4 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/

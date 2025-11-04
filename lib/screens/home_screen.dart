@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gamehubtest/screens/tasks_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
 import 'admin_dashboard_screen.dart';
@@ -13,6 +14,11 @@ import 'top_screen.dart';
 import '../models/mod_item.dart';
 import '../services/db_service.dart';
 import 'mod_details_screen.dart';
+import 'profile_screen.dart';
+import 'request_mod_screen.dart';
+import 'mod_requests_screen.dart';
+import 'world_chat_screen.dart';
+import '../utils/theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,14 +29,39 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  final TextEditingController _searchController = TextEditingController();
+  List<ModItem> _searchResults = [];
+  late Future<List<ModItem>> _modsFuture;
 
-  static const List<Widget> _pages = <Widget>[
-    _HomeTab(),
-    ListScreen(),
-    AnnouncementScreen(),
-    TopScreen(),
-    ChatsScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _modsFuture = _fetchMods();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<List<ModItem>> _fetchMods() async {
+    final db = Provider.of<DBService>(context, listen: false);
+    return db.listMods();
+  }
+
+  void _onSearchChanged() {
+    _modsFuture.then((mods) {
+      final query = _searchController.text.toLowerCase();
+      setState(() {
+        _searchResults = mods
+            .where((mod) => mod.title.toLowerCase().contains(query))
+            .toList();
+      });
+    });
+  }
 
   void _onTap(int idx) => setState(() => _currentIndex = idx);
 
@@ -39,8 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = Provider.of<AuthService>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const TextField(
-          decoration: InputDecoration(
+        title: TextField(
+          controller: _searchController,
+          decoration: const InputDecoration(
             hintText: 'Search...',
             border: InputBorder.none,
           ),
@@ -67,13 +99,26 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text(auth.currentUser?.email ?? 'Guest'),
-              accountEmail: Text('Role: ${auth.currentUser?.role ?? 'user'}'),
+              accountName: Text(auth.currentUser?.username ?? 'Guest'),
+              accountEmail: Text(auth.currentUser?.email ?? ''),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Text(
+                  auth.currentUser?.username.isNotEmpty == true
+                      ? auth.currentUser!.username[0].toUpperCase()
+                      : 'G',
+                  style: const TextStyle(fontSize: 40.0),
+                ),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text('Update profile'),
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()));
+              },
             ),
             ListTile(
               leading: const Icon(Icons.download),
@@ -94,6 +139,35 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (_) => const AdminDashboardScreen()));
                 },
               ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.add_box),
+              title: const Text('Request a Mod'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const RequestModScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.list_alt),
+              title: const Text('My Mod Requests'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ModRequestsScreen()));
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.chat),
+              title: const Text('World Chat'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const WorldChatScreen()));
+              },
+            ),
             const Divider(),
             ListTile(
                 leading: const Icon(Icons.send),
@@ -135,7 +209,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: <Widget>[
+          _HomeTab(
+            searchResults: _searchResults,
+            searchQuery: _searchController.text,
+          ),
+          ListScreen(searchQuery: _searchController.text),
+          const AnnouncementScreen(),
+          TopScreen(searchQuery: _searchController.text),
+          const ChatsScreen(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTap,
@@ -154,7 +240,10 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeTab extends StatefulWidget {
-  const _HomeTab();
+  final List<ModItem> searchResults;
+  final String searchQuery;
+  const _HomeTab(
+      {super.key, required this.searchResults, required this.searchQuery});
 
   @override
   __HomeTabState createState() => __HomeTabState();
@@ -167,6 +256,55 @@ class __HomeTabState extends State<_HomeTab> {
   void initState() {
     super.initState();
     _items = _fetchItems();
+    _showDailyRewardDialog();
+  }
+
+  Future<void> _showDailyRewardDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastClaimed = prefs.getString('last_claimed_daily_reward');
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    if (lastClaimed != today) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Daily Reward'),
+              content: const Text('Claim your daily 2 coins!'),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    final auth =
+                        Provider.of<AuthService>(context, listen: false);
+                    if (auth.currentUser != null) {
+                      await auth.awardCoinsToCurrentUser(2);
+                      await prefs.setString(
+                          'last_claimed_daily_reward', today);
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('You have claimed 2 coins!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not claim reward. User not found.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Claim'),
+                ),
+              ],
+            ),
+          );
+        }
+      });
+    }
   }
 
   Future<Map<String, List<ModItem>>> _fetchItems() async {
@@ -181,10 +319,10 @@ class __HomeTabState extends State<_HomeTab> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: AppTheme.textTheme.headlineMedium,
       ),
     );
   }
@@ -198,35 +336,82 @@ class __HomeTabState extends State<_HomeTab> {
       },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             if (item.screenshots.isNotEmpty)
-              Image.network(
-                item.screenshots.first,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 150,
-                  color: Colors.grey[300],
-                  child: const Center(child: Icon(Icons.image, size: 50)),
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                child: Image.network(
+                  item.screenshots.first,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: AppTheme.lightGray,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        size: 50,
+                        color: AppTheme.grayText,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            const SizedBox(height: 8),
-            Text(item.title,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(item.publisherName),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: AppTheme.textTheme.headlineMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.publisherName,
+                    style: AppTheme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
           ],
-        )),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.searchQuery.isNotEmpty) {
+      if (widget.searchResults.isEmpty) {
+        return const Center(child: Text('No results found.'));
+      }
+      return ListView.builder(
+        itemCount: widget.searchResults.length,
+        itemBuilder: (context, index) {
+          return _buildItemCard(widget.searchResults[index]);
+        },
+      );
+    }
+
     return FutureBuilder<Map<String, List<ModItem>>>(
       future: _items,
       builder: (context, snapshot) {

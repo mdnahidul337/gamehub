@@ -24,23 +24,28 @@ class AuthService extends ChangeNotifier {
       return;
     }
     final event = await _db.child('users/${user.uid}').once();
-    if (event.snapshot.value != null) {
-      currentUser = AppUser.fromMap(
-          user.uid, Map<String, dynamic>.from(event.snapshot.value as Map));
+    print('Firebase user data: ${event.snapshot.value}');
+    final snapshotValue = event.snapshot.value;
+    if (snapshotValue != null && snapshotValue is Map) {
+      // Ensure keys are strings, which is expected for a user map
+      final userData = Map<String, dynamic>.from(snapshotValue as Map);
+      currentUser = AppUser.fromMap(user.uid, userData);
     } else {
       // In case DB entry missing, create default user
       currentUser = AppUser(
-          uid: user.uid,
-          email: user.email ?? '',
-          role: 'user',
-          coins: 0,
-          banned: false);
+        uid: user.uid,
+        email: user.email ?? '',
+        username: user.email?.split('@').first ?? '',
+        role: 'user',
+        coins: 0,
+        banned: false,
+      );
       await _db.child('users/${user.uid}').set(currentUser!.toMap());
     }
     notifyListeners();
   }
 
-  Future<String?> registerWithEmail(String email, String password,
+  Future<String?> registerWithEmail(String email, String password, String username,
       {String? adminCode}) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
@@ -50,7 +55,7 @@ class AuthService extends ChangeNotifier {
           ? 'admin'
           : 'user';
       final user =
-          AppUser(uid: uid, email: email, role: role, coins: 5, banned: false);
+          AppUser(uid: uid, email: email, username: username, role: role, coins: 5, banned: false);
       await _db.child('users/$uid').set(user.toMap());
       return null;
     } on FirebaseAuthException catch (e) {
@@ -73,6 +78,17 @@ class AuthService extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  Future<String?> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
   }
 
   /// Refresh user data from Realtime Database (coins, role, banned flag)

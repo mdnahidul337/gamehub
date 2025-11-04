@@ -16,6 +16,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
   String _email = '';
   String _password = '';
+  String _username = '';
   String? _adminCode;
   String? _error;
 
@@ -39,6 +40,14 @@ class _AuthScreenState extends State<AuthScreen> {
                         ? 'Enter valid email'
                         : null,
                   ),
+                  if (!_isLogin)
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: 'Username'),
+                      onSaved: (v) => _username = v?.trim() ?? '',
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Enter a username'
+                          : null,
+                    ),
                   TextFormField(
                     decoration: const InputDecoration(labelText: 'Password'),
                     obscureText: true,
@@ -64,7 +73,8 @@ class _AuthScreenState extends State<AuthScreen> {
                         if (_isLogin) {
                           msg = await auth.signInWithEmail(_email, _password);
                         } else {
-                          msg = await auth.registerWithEmail(_email, _password,
+                          msg = await auth.registerWithEmail(
+                              _email, _password, _username,
                               adminCode: _adminCode);
                         }
                         if (msg != null) {
@@ -75,12 +85,57 @@ class _AuthScreenState extends State<AuthScreen> {
                   TextButton(
                       onPressed: () => setState(() => _isLogin = !_isLogin),
                       child: Text(
-                          _isLogin ? 'Create account' : 'Have account? Login'))
+                          _isLogin ? 'Create account' : 'Have account? Login')),
+                  if (_isLogin)
+                    TextButton(
+                      onPressed: _showPasswordResetDialog,
+                      child: const Text('Forgot Password?'),
+                    ),
                 ],
               ),
             )
           ],
         ),
+      ),
+    );
+  }
+
+  void _showPasswordResetDialog() {
+    final emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter your email to receive a password reset link.'),
+            TextFormField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final auth = Provider.of<AuthService>(context, listen: false);
+              final email = emailController.text.trim();
+              if (email.isNotEmpty) {
+                final msg = await auth.sendPasswordResetEmail(email);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(msg ?? 'Password reset email sent.')),
+                );
+              }
+            },
+            child: const Text('Send'),
+          ),
+        ],
       ),
     );
   }

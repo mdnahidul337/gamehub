@@ -12,6 +12,7 @@ import 'screens/admin_users_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
 import 'models/app_user.dart';
+import 'utils/theme.dart';
 
 void main() async {
   print("main: App starting");
@@ -46,8 +47,8 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'GameHub',
-        theme: ThemeData(primarySwatch: Colors.deepPurple),
-        home: const AuthWrapper(),
+        theme: AppTheme.themeData,
+        home: const SplashScreen(),
         routes: {
           '/admin/dashboard': (_) => const AdminDashboardScreen(),
           '/admin/users': (_) => const AdminUsersScreen(),

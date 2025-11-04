@@ -111,7 +111,7 @@ class DownloadService extends ChangeNotifier {
         final tk = t as dynamic;
         out.add({
           'taskId': tk.taskId ?? '',
-          'status': tk.status?.value ?? tk.status ?? 0,
+          'status': tk.status ?? 0,
           'progress': tk.progress ?? 0,
           'filename': tk.filename ?? tk.savedFileName ?? tk.taskId,
           'savedDir': tk.savedDir ?? '',

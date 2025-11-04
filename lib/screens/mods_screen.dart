@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../services/db_service.dart';
 import '../models/mod_item.dart';
 import '../services/auth_service.dart';
 import 'admin_mod_edit.dart';
 import '../services/download_service.dart';
+import 'mod_details_screen.dart';
 
 class ModsScreen extends StatefulWidget {
   const ModsScreen({super.key});
@@ -62,12 +66,26 @@ class _ModsScreenState extends State<ModsScreen> {
               itemBuilder: (context, i) {
                 final m = items[i];
                 if (m.unlisted && !isAdmin) return const SizedBox.shrink();
-                return ListTile(
-                  title: Text(m.title),
-                  subtitle: Text(
-                      '${m.category} • ${m.price == 0 ? 'Free' : '${m.price}'} coins • ${m.downloads} downloads'),
-                  trailing: isAdmin
-                      ? PopupMenuButton<String>(
+                return InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ModDetailsScreen(mod: m),
+                    ));
+                  },
+                  child: ListTile(
+                    leading: m.screenshots.isNotEmpty
+                        ? Image.network(
+                            m.screenshots.first,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    title: Text(m.title),
+                    subtitle: Text(
+                        '${m.category} • ${m.price == 0 ? 'Free' : '${m.price}'} coins • ${m.downloads} downloads'),
+                    trailing: isAdmin
+                        ? PopupMenuButton<String>(
                           onSelected: (v) async {
                             if (v == 'edit') {
                               await Navigator.of(context).push(
@@ -241,7 +259,8 @@ class _ModsScreenState extends State<ModsScreen> {
                               ),
                           ],
                         ),
-                ); // end ListTile
+                  ),
+                ); // end InkWell
               }, // end itemBuilder
             ), // end ListView.builder
           ); // end RefreshIndicator

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../models/coin_package.dart';
 import '../services/auth_service.dart';
 import '../services/db_service.dart';
+import 'purchase_history_screen.dart';
 
 class ShopScreen extends StatelessWidget {
   const ShopScreen({super.key});
@@ -25,6 +29,14 @@ class ShopScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Shop'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const PurchaseHistoryScreen(),
+              ));
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
@@ -40,7 +52,8 @@ class ShopScreen extends StatelessWidget {
           Card(
             child: InkWell(
               onTap: () async {
-                final awarded = await db.watchAdAndAward(auth.currentUser!.uid, 5);
+                final awarded =
+                    await db.watchAdAndAward(auth.currentUser!.uid, 5);
                 if (awarded) {
                   await auth.refreshCurrentUser();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -97,10 +110,7 @@ class PaymentScreen extends StatefulWidget {
   final DBService db;
 
   const PaymentScreen(
-      {super.key,
-      required this.package,
-      required this.auth,
-      required this.db});
+      {super.key, required this.package, required this.auth, required this.db});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -173,15 +183,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 decoration:
                     const InputDecoration(labelText: 'Your Mobile Number'),
                 onSaved: (v) => _mobileNumber = v ?? '',
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Required' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 decoration:
                     const InputDecoration(labelText: 'Transaction ID (TxID)'),
                 onSaved: (v) => _transactionId = v ?? '',
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Required' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -190,6 +198,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _formKey.currentState!.save();
                     final result = await widget.db.submitPayment(
                       widget.auth.currentUser!.uid,
+                      widget.auth.currentUser!.username,
                       widget.package,
                       _mobileNumber,
                       _transactionId,

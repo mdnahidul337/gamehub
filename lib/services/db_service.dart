@@ -51,16 +51,12 @@ class DBService {
 
   Future<void> incrementDownloads(String id) async {
     final ref = _db.child('mods/$id/downloads');
-    // Use a transaction to increment atomically
-    await ref.runTransaction((mutableData) {
-      int current = 0;
-      final md = mutableData as dynamic;
-      final v = md.value;
-      if (v != null) {
-        current = (v as int?) ?? int.tryParse('$v') ?? 0;
+    await ref.runTransaction((Object? post) {
+      if (post == null) {
+        return Transaction.success(1);
       }
-      md.value = current + 1;
-      return Transaction.success(mutableData);
+      final value = post as int;
+      return Transaction.success(value + 1);
     });
   }
 
@@ -78,18 +74,15 @@ class DBService {
     if (price <= 0) return {'success': false, 'message': 'Invalid price'};
     final coinsRef = _db.child('users/$uid/coins');
     // transaction to deduct coins
-    final result = await coinsRef.runTransaction((mutableData) {
-      int current = 0;
-      final md = mutableData as dynamic;
-      final v = md.value;
-      if (v != null) {
-        current = (v as int?) ?? int.tryParse('$v') ?? 0;
-      }
-      if (current < price) {
+    final result = await coinsRef.runTransaction((Object? post) {
+      if (post == null) {
         return Transaction.abort();
       }
-      mutableData!.value = current - price;
-      return Transaction.success(mutableData);
+      final value = post as int;
+      if (value < price) {
+        return Transaction.abort();
+      }
+      return Transaction.success(value - price);
     });
     if (result.committed == false) {
       return {'success': false, 'message': 'Not enough coins'};
@@ -109,15 +102,12 @@ class DBService {
     } catch (e) {
       // In the unlikely event we failed after deducting coins, attempt to refund
       try {
-        await coinsRef.runTransaction((mutableData) {
-          int current = 0;
-          final md = mutableData as dynamic;
-          final v = md.value;
-          if (v != null) {
-            current = (v as int?) ?? int.tryParse('$v') ?? 0;
+        await coinsRef.runTransaction((Object? post) {
+          if (post == null) {
+            return Transaction.success(price);
           }
-          md.value = current + price;
-          return Transaction.success(mutableData);
+          final value = post as int;
+          return Transaction.success(value + price);
         });
       } catch (_) {}
       return {'success': false, 'message': 'Purchase failed'};
@@ -173,15 +163,12 @@ class DBService {
 
   Future<void> incrementUserCoins(String uid, int amount) async {
     final ref = _db.child('users/$uid/coins');
-    await ref.runTransaction((mutableData) {
-      int current = 0;
-      final md = mutableData as dynamic;
-      final v = md.value;
-      if (v != null) {
-        current = (v as int?) ?? int.tryParse('$v') ?? 0;
+    await ref.runTransaction((Object? post) {
+      if (post == null) {
+        return Transaction.success(amount);
       }
-      md.value = current + amount;
-      return Transaction.success(mutableData);
+      final value = post as int;
+      return Transaction.success(value + amount);
     });
   }
 
@@ -250,6 +237,21 @@ class DBService {
   // --- Announcements CRUD ---
   Future<List<Map<String, dynamic>>> listAnnouncements() async {
     final event = await _db.child('announcements').once();
+    final Map? val = event.snapshot.value as Map?;
+    if (val == null) return [];
+    final out = <Map<String, dynamic>>[];
+    val.forEach((k, v) {
+      try {
+        out.add({'id': k, ...Map<String, dynamic>.from(v)});
+      } catch (_) {}
+    });
+    out.sort((a, b) => (b['ts'] ?? 0).compareTo(a['ts'] ?? 0));
+    return out;
+  }
+
+  Future<List<Map<String, dynamic>>> listUserPurchases(String uid) async {
+    final q = _db.child('payments').orderByChild('uid').equalTo(uid);
+    final event = await q.once();
     final Map? val = event.snapshot.value as Map?;
     if (val == null) return [];
     final out = <Map<String, dynamic>>[];
@@ -334,6 +336,18 @@ class DBService {
     await _db.child('chats/$roomId').push().set(message);
   }
 
+  Future<String> createModRequest(Map<String, dynamic> request) async {
+    final ref = _db.child('mod_requests').push();
+    final id = ref.key!;
+    await ref.set(request);
+    return id;
+  }
+
+  Stream<DatabaseEvent> streamUserModRequests(String uid) {
+    final query = _db.child('mod_requests').orderByChild('uid').equalTo(uid);
+    return query.onValue;
+  }
+
   // --- Payment admin ---
   Future<void> approvePayment(String paymentId, String uid, int amount) async {
     await _db.child('payments/$paymentId').update({'status': 'approved'});
@@ -346,6 +360,7 @@ class DBService {
 
   Future<Map<String, dynamic>> submitPayment(
       String uid,
+      String username,
       CoinPackage package,
       String mobileNumber,
       String transactionId,
@@ -354,6 +369,7 @@ class DBService {
       final now = DateTime.now().millisecondsSinceEpoch;
       final payment = {
         'uid': uid,
+        'username': username,
         'package': package.toMap(),
         'mobileNumber': mobileNumber,
         'transactionId': transactionId,

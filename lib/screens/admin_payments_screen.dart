@@ -58,9 +58,11 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
             itemCount: payments.length,
             itemBuilder: (context, index) {
               final payment = payments[index];
+              final pkg = payment['package'] ?? {};
               return ListTile(
-                title: Text('User ID: ${payment['uid']}'),
-                subtitle: Text('Mod ID: ${payment['modId']}'),
+                title: Text('User: ${payment['username'] ?? payment['uid']}'),
+                subtitle: Text(
+                    '${pkg['coins']} coins for ${pkg['price']} ${pkg['currency']}'),
                 trailing: payment['status'] == 'pending'
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
@@ -68,10 +70,8 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
                           IconButton(
                             icon: const Icon(Icons.check, color: Colors.green),
                             onPressed: () async {
-                              await db.approvePayment(
-                                  payment['id'],
-                                  payment['uid'],
-                                  payment['price']);
+                              await db.approvePayment(payment['id'],
+                                  payment['uid'], pkg['coins'] ?? 0);
                               _refresh();
                             },
                           ),
