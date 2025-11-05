@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gamehubtest/screens/category_screen.dart';
 import 'package:gamehubtest/screens/tasks_screen.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import 'admin_dashboard_screen.dart';
@@ -19,6 +22,7 @@ import 'request_mod_screen.dart';
 import 'mod_requests_screen.dart';
 import 'world_chat_screen.dart';
 import '../utils/theme.dart';
+import '../utils/theme_notifier.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,18 +36,21 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<ModItem> _searchResults = [];
   late Future<List<ModItem>> _modsFuture;
+  BannerAd? _bannerAd;
 
   @override
   void initState() {
     super.initState();
     _modsFuture = _fetchMods();
     _searchController.addListener(_onSearchChanged);
+    
   }
 
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -73,41 +80,53 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onTap(int idx) => setState(() => _currentIndex = idx);
 
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri)) {
+      throw 'Could not launch $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
     return Scaffold(
       appBar: AppBar(
-        title: TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Search...',
-            border: InputBorder.none,
-          ),
-        ),
+        title:
+            Text('GameHub', style: Theme.of(context).textTheme.headlineMedium),
         actions: [
-          if (auth.currentUser != null)
-            Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Center(
-                    child: Text('Coins: ${auth.currentUser!.coins}'),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _refreshData,
-                ),
-              ],
-            ),
           IconButton(
-            icon: const Icon(Icons.monetization_on),
+            icon: const Icon(Icons.search),
             onPressed: () {
-              Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (_) => const ShopScreen()));
+              showSearch(
+                context: context,
+                delegate: _ModSearchDelegate(
+                  (query) {
+                    _searchController.text = query;
+                    _onSearchChanged();
+                  },
+                ),
+              );
             },
           ),
+          if (auth.currentUser != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: Row(
+                  children: [
+                    Icon(Icons.monetization_on,
+                        color: Theme.of(context).primaryColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${auth.currentUser!.coins}',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
       drawer: Drawer(
@@ -115,15 +134,38 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text(auth.currentUser?.username ?? 'Guest'),
-              accountEmail: Text(auth.currentUser?.email ?? ''),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).primaryColor,
+                    Theme.of(context).colorScheme.secondary
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              accountName: Text(
+                auth.currentUser?.username ?? 'Guest',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(color: Colors.white),
+              ),
+              accountEmail: Text(
+                auth.currentUser?.email ?? '',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.white),
+              ),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Text(
                   auth.currentUser?.username.isNotEmpty == true
                       ? auth.currentUser!.username[0].toUpperCase()
                       : 'G',
-                  style: const TextStyle(fontSize: 40.0),
+                  style: TextStyle(
+                      fontSize: 40.0, color: Theme.of(context).primaryColor),
                 ),
               ),
             ),
@@ -143,6 +185,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const DownloadsScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text('Coin Shop'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ShopScreen()));
               },
             ),
             if (auth.currentUser?.role == 'admin')
@@ -197,22 +248,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: const Icon(Icons.send),
               title: const Text('Telegram'),
-              onTap: () {},
+              onTap: () => _launchURL('https://t.me/your_telegram_channel'),
             ),
             ListTile(
               leading: const Icon(Icons.facebook),
               title: const Text('Facebook'),
-              onTap: () {},
+              onTap: () =>
+                  _launchURL('https://www.facebook.com/your_facebook_page'),
             ),
             ListTile(
               leading: const Icon(Icons.video_library),
               title: const Text('YouTube'),
-              onTap: () {},
+              onTap: () =>
+                  _launchURL('https://www.youtube.com/your_youtube_channel'),
             ),
             ListTile(
               leading: const Icon(Icons.help),
               title: const Text('Tutorial Video'),
-              onTap: () {},
+              onTap: () => _launchURL(
+                  'https://www.youtube.com/watch?v=your_tutorial_video'),
             ),
             const Divider(),
             ListTile(
@@ -220,6 +274,18 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Logout'),
               onTap: () async {
                 await auth.signOut();
+              },
+            ),
+            const Divider(),
+            SwitchListTile(
+              title: const Text('Dark Mode'),
+              value: themeNotifier.getTheme() == AppTheme.darkTheme,
+              onChanged: (value) {
+                if (value) {
+                  themeNotifier.setTheme(AppTheme.darkTheme);
+                } else {
+                  themeNotifier.setTheme(AppTheme.lightTheme);
+                }
               },
             ),
           ],
@@ -242,6 +308,8 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _currentIndex,
         onTap: _onTap,
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'List'),
@@ -251,6 +319,132 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'More'),
         ],
       ),
+    );
+  }
+}
+
+class _ModSearchDelegate extends SearchDelegate<String> {
+  final Function(String) onSearch;
+
+  _ModSearchDelegate(this.onSearch);
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+          onSearch(query);
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, '');
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final db = Provider.of<DBService>(context, listen: false);
+    if (query.isEmpty) {
+      return const Center(child: Text('Please enter a search query.'));
+    }
+    return FutureBuilder<List<ModItem>>(
+      future: db.listMods(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: Text('No results found.'));
+        }
+        final results = snapshot.data!
+            .where(
+                (mod) => mod.title.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+        if (results.isEmpty) {
+          return const Center(child: Text('No results found.'));
+        }
+        return ListView.builder(
+          itemCount: results.length,
+          itemBuilder: (context, index) {
+            final result = results[index];
+            return ListTile(
+              leading: result.screenshots.isNotEmpty
+                  ? Image.network(
+                      result.screenshots.first,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(Icons.image),
+              title: Text(result.title),
+              subtitle: Text(result.publisherName),
+              onTap: () {
+                close(context, '');
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ModDetailsScreen(mod: result),
+                ));
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final db = Provider.of<DBService>(context, listen: false);
+    if (query.isEmpty) {
+      return Container();
+    }
+    return FutureBuilder<List<ModItem>>(
+      future: db.listMods(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: Text('No suggestions.'));
+        }
+        final suggestions = snapshot.data!
+            .where(
+                (mod) => mod.title.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+        return ListView.builder(
+          itemCount: suggestions.length,
+          itemBuilder: (context, index) {
+            final suggestion = suggestions[index];
+            return ListTile(
+              leading: suggestion.screenshots.isNotEmpty
+                  ? Image.network(
+                      suggestion.screenshots.first,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(Icons.image),
+              title: Text(suggestion.title),
+              subtitle: Text(suggestion.publisherName),
+              onTap: () {
+                close(context, '');
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ModDetailsScreen(mod: suggestion),
+                ));
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -292,29 +486,38 @@ class __HomeTabState extends State<_HomeTab> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Daily Reward'),
-              content: const Text('Claim your daily 2 coins!'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text('Daily Reward',
+                  style: AppTheme.textTheme.headlineMedium),
+              content: Text('Claim your daily 2 coins!',
+                  style: AppTheme.textTheme.bodyLarge),
               actions: [
                 TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Later', style: AppTheme.textTheme.bodyMedium),
+                ),
+                ElevatedButton(
                   onPressed: () async {
                     final auth =
                         Provider.of<AuthService>(context, listen: false);
                     if (auth.currentUser != null) {
                       await auth.awardCoinsToCurrentUser(2);
-                      await prefs.setString(
-                          'last_claimed_daily_reward', today);
+                      await prefs.setString('last_claimed_daily_reward', today);
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text('You have claimed 2 coins!'),
-                          backgroundColor: Colors.green,
+                          backgroundColor: AppTheme.success,
                         ),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Could not claim reward. User not found.'),
-                          backgroundColor: Colors.red,
+                        SnackBar(
+                          content:
+                              Text('Could not claim reward. User not found.'),
+                          backgroundColor: AppTheme.error,
                         ),
                       );
                     }
@@ -339,12 +542,37 @@ class __HomeTabState extends State<_HomeTab> {
     };
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, VoidCallback onViewMore) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-      child: Text(
-        title,
-        style: AppTheme.textTheme.headlineMedium,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          TextButton(
+            onPressed: onViewMore,
+            child: const Text('See more'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalList(List<ModItem> items) {
+    return SizedBox(
+      height: 280,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          return SizedBox(
+            width: 200,
+            child: _buildItemCard(items[index]),
+          );
+        },
       ),
     );
   }
@@ -357,64 +585,97 @@ class __HomeTabState extends State<_HomeTab> {
         ));
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
         elevation: 8,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (item.screenshots.isNotEmpty)
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                child: Image.network(
-                  item.screenshots.first,
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: AppTheme.lightGray,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Theme.of(context).cardColor,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.screenshots.isNotEmpty)
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  child: Image.network(
+                    item.screenshots.first,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Theme.of(context).iconTheme.color,
+                        ),
                       ),
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 50,
-                        color: AppTheme.grayText,
-                      ),
-                    ),
                   ),
                 ),
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
+                              fontSize: 22),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          item.publisherName,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.download,
+                              color: Theme.of(context).iconTheme.color,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${item.downloads}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    style: AppTheme.textTheme.headlineMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.publisherName,
-                    style: AppTheme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -437,40 +698,61 @@ class __HomeTabState extends State<_HomeTab> {
     return RefreshIndicator(
       onRefresh: _refreshItems,
       child: FutureBuilder<Map<String, List<ModItem>>>(
-      future: _items,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No items found.'));
-        }
+        future: _items,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No items found.'));
+          }
 
-        final items = snapshot.data!;
-        final maps = items['maps'] ?? [];
-        final mods = items['mods'] ?? [];
-        final busSkins = items['bus_skins'] ?? [];
+          final items = snapshot.data!;
+          final maps = items['maps'] ?? [];
+          final mods = items['mods'] ?? [];
+          final busSkins = items['bus_skins'] ?? [];
 
-        return ListView(
-          children: [
-            if (maps.isNotEmpty) ...[
-              _buildSectionTitle("Editor's Choice for maps"),
-              ...maps.map(_buildItemCard),
+          return ListView(
+            children: [
+              if (maps.isNotEmpty) ...[
+                _buildSectionTitle("Editor's Choice for maps", () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CategoryScreen(
+                      category: 'maps',
+                      mods: maps,
+                    ),
+                  ));
+                }),
+                _buildHorizontalList(maps),
+              ],
+              if (mods.isNotEmpty) ...[
+                _buildSectionTitle("New and Update latest mods", () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CategoryScreen(
+                      category: 'mods',
+                      mods: mods,
+                    ),
+                  ));
+                }),
+                _buildHorizontalList(mods),
+              ],
+              if (busSkins.isNotEmpty) ...[
+                _buildSectionTitle("Best Skins here", () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CategoryScreen(
+                      category: 'bus_skins',
+                      mods: busSkins,
+                    ),
+                  ));
+                }),
+                _buildHorizontalList(busSkins),
+              ],
             ],
-            if (mods.isNotEmpty) ...[
-              _buildSectionTitle("New and Update latest mods"),
-              ...mods.map(_buildItemCard),
-            ],
-            if (busSkins.isNotEmpty) ...[
-              _buildSectionTitle("Best Skins here"),
-              ...busSkins.map(_buildItemCard),
-            ],
-          ],
-        );
-      },
+          );
+        },
       ),
     );
   }

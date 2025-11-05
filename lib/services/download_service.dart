@@ -5,8 +5,9 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DownloadService extends ChangeNotifier {
   final Map<String, String> _taskForMod = {}; // modId -> taskId
@@ -19,9 +20,13 @@ class DownloadService extends ChangeNotifier {
   Future<bool> _ensurePermission() async {
     if (Platform.isAndroid) {
       final status = await Permission.storage.request();
-      return status.isGranted;
+      if (status.isGranted) {
+        return true;
+      } else {
+        final manageStatus = await Permission.manageExternalStorage.request();
+        return manageStatus.isGranted;
+      }
     }
-    // iOS/macOS generally don't require explicit storage permission for app dirs
     return true;
   }
 
@@ -70,8 +75,14 @@ class DownloadService extends ChangeNotifier {
             // complete = 3, failed = 4 (these are stable across plugin versions)
             if (status == 3) {
               try {
-                FlutterDownloader.open(taskId: taskId);
-              } catch (_) {}
+                FlutterDownloader.open(taskId: taskId).then((success) {
+                  if (!success) {
+                    _launchUrlFallback(taskId);
+                  }
+                });
+              } catch (_) {
+                _launchUrlFallback(taskId);
+              }
             }
           }
         }
@@ -146,7 +157,26 @@ class DownloadService extends ChangeNotifier {
 
   /// Open a downloaded file by its taskId.
   Future<void> openTask(String taskId) async {
-    await FlutterDownloader.open(taskId: taskId);
+    try {
+      final success = await FlutterDownloader.open(taskId: taskId);
+      if (!success) {
+        _launchUrlFallback(taskId);
+      }
+    } catch (e) {
+      _launchUrlFallback(taskId);
+    }
+  }
+
+  Future<void> _launchUrlFallback(String taskId) async {
+    final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+        query: "SELECT * FROM task WHERE task_id='$taskId'");
+    if (tasks != null && tasks.isNotEmpty) {
+      final task = tasks.first;
+      final fileUrl = task.url;
+      if (await canLaunchUrl(Uri.parse(fileUrl))) {
+        await launchUrl(Uri.parse(fileUrl));
+      }
+    }
   }
 
   void _startPolling(String modId, String taskId) {

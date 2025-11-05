@@ -38,6 +38,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
         <!-- Provider required by flutter_downloader to access downloaded files on Android -->
         <provider
             android:name="vn.hunghd.flutterdownloader.DownloadedFileProvider"
