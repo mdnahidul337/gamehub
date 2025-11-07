@@ -23,6 +23,7 @@ import 'mod_requests_screen.dart';
 import 'world_chat_screen.dart';
 import '../utils/theme.dart';
 import '../utils/theme_notifier.dart';
+import '../config/ad_config.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -461,12 +462,41 @@ class _HomeTab extends StatefulWidget {
 
 class __HomeTabState extends State<_HomeTab> {
   late Future<Map<String, List<ModItem>>> _items;
+  NativeAd? _nativeAd;
+  bool _isNativeAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _items = _fetchItems();
     _showDailyRewardDialog();
+    _loadNativeAd();
+  }
+
+  @override
+  void dispose() {
+    _nativeAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadNativeAd() {
+    _nativeAd = NativeAd(
+      adUnitId: AdConfig.nativeAdUnitId,
+      request: const AdRequest(),
+      listener: NativeAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isNativeAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.medium,
+      ),
+    )..load();
   }
 
   Future<void> _refreshItems() async {
@@ -750,6 +780,12 @@ class __HomeTabState extends State<_HomeTab> {
                 }),
                 _buildHorizontalList(busSkins),
               ],
+              if (_isNativeAdLoaded && _nativeAd != null)
+                Container(
+                  height: 320,
+                  alignment: Alignment.center,
+                  child: AdWidget(ad: _nativeAd!),
+                ),
             ],
           );
         },

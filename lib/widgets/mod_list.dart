@@ -1,21 +1,24 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/mod_item.dart';
 import '../screens/mod_details_screen.dart';
 import '../utils/theme.dart';
 
 class ModList extends StatelessWidget {
-  final List<ModItem> mods;
+  final List<dynamic> mods;
   final String searchQuery;
 
   const ModList({super.key, required this.mods, required this.searchQuery});
 
   @override
   Widget build(BuildContext context) {
-    final filteredMods = mods
-        .where((mod) =>
-            mod.title.toLowerCase().contains(searchQuery.toLowerCase()))
-        .toList();
+    final filteredMods = mods.where((mod) {
+      if (mod is ModItem) {
+        return mod.title.toLowerCase().contains(searchQuery.toLowerCase());
+      }
+      return true;
+    }).toList();
 
     if (filteredMods.isEmpty) {
       return const Center(child: Text('No mods found.'));
@@ -24,8 +27,17 @@ class ModList extends StatelessWidget {
     return ListView.builder(
       itemCount: filteredMods.length,
       itemBuilder: (context, index) {
-        final mod = filteredMods[index];
-        return _buildItemCard(context, mod);
+        final item = filteredMods[index];
+        if (item is ModItem) {
+          return _buildItemCard(context, item);
+        } else if (item is NativeAd) {
+          return Container(
+            height: 320,
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: AdWidget(ad: item),
+          );
+        }
+        return const SizedBox.shrink();
       },
     );
   }

@@ -8,6 +8,8 @@ import '../services/db_service.dart';
 import '../services/download_service.dart';
 import '../utils/theme.dart';
 import '../widgets/reviews_section.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../config/ad_config.dart';
 
 class ModDetailsScreen extends StatefulWidget {
   final ModItem mod;
@@ -21,11 +23,53 @@ class ModDetailsScreen extends StatefulWidget {
 class _ModDetailsScreenState extends State<ModDetailsScreen> {
   late Future<bool> _isPurchasedFuture;
   bool _downloadFailed = false;
+  BannerAd? _bannerAd;
+  RewardedAd? _rewardedAd;
 
   @override
   void initState() {
     super.initState();
     _checkIfPurchased();
+    _loadBannerAd();
+    _loadRewardedAd();
+  }
+
+  void _loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: AdConfig.rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedAd = ad;
+        },
+        onAdFailedToLoad: (err) {
+          _rewardedAd = null;
+        },
+      ),
+    );
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: AdConfig.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {});
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    _rewardedAd?.dispose();
+    super.dispose();
   }
 
   void _checkIfPurchased() {
@@ -119,6 +163,17 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
                   const SizedBox(height: 20),
                   if (widget.mod.id != null)
                     ReviewsSection(modId: widget.mod.id!),
+                  if (_bannerAd != null)
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SafeArea(
+                        child: SizedBox(
+                          width: _bannerAd!.size.width.toDouble(),
+                          height: _bannerAd!.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd!),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -160,24 +215,47 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
                   );
                 } else {
                   return ElevatedButton(
-                    onPressed: () async {
-                      try {
-                        await downloadService.download(
-                          widget.mod.id!,
-                          widget.mod.fileUrl!,
-                          widget.mod.title,
-                          widget.mod.category,
+                    onPressed: () {
+                      if (_rewardedAd != null) {
+                        _rewardedAd!.fullScreenContentCallback =
+                            FullScreenContentCallback(
+                          onAdDismissedFullScreenContent: (ad) {
+                            ad.dispose();
+                            _loadRewardedAd();
+                          },
+                          onAdFailedToShowFullScreenContent: (ad, err) {
+                            ad.dispose();
+                            _loadRewardedAd();
+                          },
                         );
+                        _rewardedAd!.show(
+                          onUserEarnedReward: (ad, reward) async {
+                            try {
+                              await downloadService.download(
+                                widget.mod.id!,
+                                widget.mod.fileUrl!,
+                                widget.mod.title,
+                                widget.mod.category,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Download started...')),
+                              );
+                            } catch (e) {
+                              setState(() {
+                                _downloadFailed = true;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Download failed: $e')),
+                              );
+                            }
+                          },
+                        );
+                      } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Download started...')),
-                        );
-                      } catch (e) {
-                        setState(() {
-                          _downloadFailed = true;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Download failed: $e')),
+                              content: Text('Ad not ready. Please try again.')),
                         );
                       }
                     },
