@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
+import '../config/ad_config.dart';
 import '../services/db_service.dart';
 import '../services/auth_service.dart';
 
@@ -13,6 +14,7 @@ class PurchaseHistoryScreen extends StatefulWidget {
 
 class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
   late Future<List<Map<String, dynamic>>> _historyFuture;
+  BannerAd? _bannerAd;
 
   @override
   void initState() {
@@ -20,6 +22,29 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
     final auth = Provider.of<AuthService>(context, listen: false);
     _historyFuture = Provider.of<DBService>(context, listen: false)
         .listUserPurchases(auth.currentUser!.uid);
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: AdConfig.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {});
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   Color _getStatusColor(String status) {
@@ -41,6 +66,13 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
       appBar: AppBar(
         title: const Text('Purchase History'),
       ),
+      bottomNavigationBar: _bannerAd != null
+          ? SizedBox(
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            )
+          : null,
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _historyFuture,
         builder: (context, snapshot) {

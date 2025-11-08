@@ -25,6 +25,7 @@ import '../utils/theme.dart';
 import '../utils/theme_notifier.dart';
 import '../config/ad_config.dart';
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -38,13 +39,33 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ModItem> _searchResults = [];
   late Future<List<ModItem>> _modsFuture;
   BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+  
 
   @override
   void initState() {
     super.initState();
     _modsFuture = _fetchMods();
     _searchController.addListener(_onSearchChanged);
-    
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: AdConfig.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
   }
 
   @override
@@ -292,17 +313,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: <Widget>[
-          _HomeTab(
-            searchResults: _searchResults,
-            searchQuery: _searchController.text,
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: <Widget>[
+                _HomeTab(
+                  searchResults: _searchResults,
+                  searchQuery: _searchController.text,
+                ),
+                ListScreen(searchQuery: _searchController.text),
+                const AnnouncementScreen(),
+                TopScreen(searchQuery: _searchController.text),
+                const ChatsScreen(),
+              ],
+            ),
           ),
-          ListScreen(searchQuery: _searchController.text),
-          const AnnouncementScreen(),
-          TopScreen(searchQuery: _searchController.text),
-          const ChatsScreen(),
+          if (_isBannerAdLoaded)
+            SizedBox(
+              height: _bannerAd!.size.height.toDouble(),
+              width: _bannerAd!.size.width.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -317,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
               icon: Icon(Icons.announcement), label: 'Announce'),
           BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Top'),
-          BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'More'),
+          BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'Chats'),
         ],
       ),
     );

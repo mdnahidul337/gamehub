@@ -1,16 +1,47 @@
+import 'dart:io';
+
 class AdConfig {
-  // Replace with your actual AdMob App ID
-  static const String appOpenAdUnitId = 'ca-app-pub-3940256099942544/3419835294';
+  // Banner Ad Unit IDs
+  static String get bannerAdUnitId {
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3940256099942544/9214589741'; // Android Test ID
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3940256099942544/2934735716'; // iOS Test ID
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
 
-  // Replace with your actual AdMob Banner Ad Unit ID
-  static const String bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
+  // Interstitial Ad Unit IDs
+  static String get interstitialAdUnitId {
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3940256099942544/1033173712'; // Android Test ID
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3940256099942544/4411468910'; // iOS Test ID
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
 
-  // Replace with your actual AdMob Interstitial Ad Unit ID
-  static const String interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
+  // Native Ad Unit IDs
+  static String get nativeAdUnitId {
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3940256099942544/2247696110'; // Android Test ID
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3940256099942544/3986624511'; // iOS Test ID
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
 
-  // Replace with your actual AdMob Rewarded Ad Unit ID
-  static const String rewardedAdUnitId = 'ca-app-pub-3940256099942544/5224354917';
-
-  // Replace with your actual AdMob Native Ad Unit ID
-  static const String nativeAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
+  // Rewarded Ad Unit IDs
+  static String get rewardedAdUnitId {
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-3940256099942544/5224354917'; // Android Test ID
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-3940256099942544/1712485313'; // iOS Test ID
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
 }

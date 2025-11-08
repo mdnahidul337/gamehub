@@ -24,29 +24,12 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
   late Future<bool> _isPurchasedFuture;
   bool _downloadFailed = false;
   BannerAd? _bannerAd;
-  RewardedAd? _rewardedAd;
 
   @override
   void initState() {
     super.initState();
     _checkIfPurchased();
     _loadBannerAd();
-    _loadRewardedAd();
-  }
-
-  void _loadRewardedAd() {
-    RewardedAd.load(
-      adUnitId: AdConfig.rewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          _rewardedAd = ad;
-        },
-        onAdFailedToLoad: (err) {
-          _rewardedAd = null;
-        },
-      ),
-    );
   }
 
   void _loadBannerAd() {
@@ -68,9 +51,9 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
   @override
   void dispose() {
     _bannerAd?.dispose();
-    _rewardedAd?.dispose();
     super.dispose();
   }
+
 
   void _checkIfPurchased() {
     final auth = Provider.of<AuthService>(context, listen: false);
@@ -215,47 +198,25 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
                   );
                 } else {
                   return ElevatedButton(
-                    onPressed: () {
-                      if (_rewardedAd != null) {
-                        _rewardedAd!.fullScreenContentCallback =
-                            FullScreenContentCallback(
-                          onAdDismissedFullScreenContent: (ad) {
-                            ad.dispose();
-                            _loadRewardedAd();
-                          },
-                          onAdFailedToShowFullScreenContent: (ad, err) {
-                            ad.dispose();
-                            _loadRewardedAd();
-                          },
+                    onPressed: () async {
+                      try {
+                        await downloadService.download(
+                          widget.mod.id!,
+                          widget.mod.fileUrl!,
+                          widget.mod.title,
+                          widget.mod.category,
                         );
-                        _rewardedAd!.show(
-                          onUserEarnedReward: (ad, reward) async {
-                            try {
-                              await downloadService.download(
-                                widget.mod.id!,
-                                widget.mod.fileUrl!,
-                                widget.mod.title,
-                                widget.mod.category,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Download started...')),
-                              );
-                            } catch (e) {
-                              setState(() {
-                                _downloadFailed = true;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Download failed: $e')),
-                              );
-                            }
-                          },
-                        );
-                      } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Ad not ready. Please try again.')),
+                              content: Text('Download started...')),
+                        );
+                      } catch (e) {
+                        setState(() {
+                          _downloadFailed = true;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Download failed: $e')),
                         );
                       }
                     },
@@ -267,6 +228,7 @@ class _ModDetailsScreenState extends State<ModDetailsScreen> {
                     child: const Text('Download'),
                   );
                 }
+
               } else {
                 return ElevatedButton(
                   onPressed: () async {

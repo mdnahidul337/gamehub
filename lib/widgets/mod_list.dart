@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/mod_item.dart';
+import 'native_ad_widget.dart';
 import '../screens/mod_details_screen.dart';
 import '../utils/theme.dart';
 
@@ -31,11 +32,7 @@ class ModList extends StatelessWidget {
         if (item is ModItem) {
           return _buildItemCard(context, item);
         } else if (item is NativeAd) {
-          return Container(
-            height: 320,
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: AdWidget(ad: item),
-          );
+          return NativeAdWidget(ad: item);
         }
         return const SizedBox.shrink();
       },

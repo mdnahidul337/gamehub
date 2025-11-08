@@ -1,16 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
-
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
+import '../config/ad_config.dart';
 import '../models/coin_package.dart';
 import '../services/auth_service.dart';
 import '../services/db_service.dart';
 import 'purchase_history_screen.dart';
 
-class ShopScreen extends StatelessWidget {
+class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
+
+  @override
+  State<ShopScreen> createState() => _ShopScreenState();
+}
+
+class _ShopScreenState extends State<ShopScreen> {
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRewardedAd();
+  }
+
+  void _loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: AdConfig.rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedAd = ad;
+          setState(() {
+            _isRewardedAdReady = true;
+          });
+        },
+        onAdFailedToLoad: (err) {
+          _isRewardedAdReady = false;
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _rewardedAd?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,18 +87,31 @@ class ShopScreen extends StatelessWidget {
         children: [
           Card(
             child: InkWell(
-              onTap: () async {
-                final awarded =
-                    await db.watchAdAndAward(auth.currentUser!.uid, 5);
-                if (awarded) {
-                  await auth.refreshCurrentUser();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('5 coins awarded!')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ad failed to load.')));
-                }
-              },
+              onTap: !_isRewardedAdReady
+                  ? null
+                  : () {
+                      _rewardedAd?.fullScreenContentCallback =
+                          FullScreenContentCallback(
+                        onAdDismissedFullScreenContent: (ad) {
+                          _loadRewardedAd();
+                        },
+                      );
+                      _rewardedAd?.show(onUserEarnedReward: (_, reward) {
+                        db.watchAdAndAward(auth.currentUser!.uid, 5)
+                            .then((awarded) {
+                          if (awarded) {
+                            auth.refreshCurrentUser();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('5 coins awarded!')));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Ad failed to load.')));
+                          }
+                        });
+                      });
+                    },
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

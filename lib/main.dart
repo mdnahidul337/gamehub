@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart'; // <-- You are correctly importing this
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -27,12 +28,25 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await FirebaseAppCheck.instance.activate(
+    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+    androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.debug,
+  );
   // ------------------------
 
   print("main: Firebase initialized"); // This line should now be reached
   await MobileAds.instance.initialize();
+  // Initialize the Mobile Ads SDK.
+  MobileAds.instance.initialize();
+
+  // TODO: Add your test device ID here
+  RequestConfiguration configuration = RequestConfiguration(testDeviceIds: ["YOUR_TEST_DEVICE_ID"]);
+  MobileAds.instance.updateRequestConfiguration(configuration);
+
   await DownloadService().initialize();
   print("main: DownloadService initialized");
+  print("main: AdMobService initialized");
   runApp(const MyApp());
   print("main: runApp() called");
 }
@@ -48,17 +62,18 @@ class MyApp extends StatelessWidget {
         Provider(create: (_) => DBService()),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => DownloadService()),
-        ChangeNotifierProvider(create: (_) => ThemeNotifier(AppTheme.lightTheme)),
+        ChangeNotifierProvider(
+            create: (_) => ThemeNotifier(AppTheme.lightTheme)),
       ],
       child: Consumer<ThemeNotifier>(
         builder: (context, theme, _) => MaterialApp(
-          title: 'GameHub',
+          title: 'GameHubBD',
           theme: theme.getTheme(),
           home: const SplashScreen(),
           routes: {
-          '/admin/dashboard': (_) => const AdminDashboardScreen(),
-          '/admin/users': (_) => const AdminUsersScreen(),
-        },
+            '/admin/dashboard': (_) => const AdminDashboardScreen(),
+            '/admin/users': (_) => const AdminUsersScreen(),
+          },
         ),
       ),
     );

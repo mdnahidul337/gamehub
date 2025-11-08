@@ -180,17 +180,56 @@ class DBService {
     });
   }
 
-  /// Daily login bonus: awards `points` once per calendar day. Returns true if awarded.
+  /// Daily login bonus: awards `points` if 24 hours have passed since the last claim.
+  /// Returns true if awarded, false otherwise.
   Future<bool> giveDailyLoginBonus(String uid, int points) async {
-    final key =
-        DateTime.now().toUtc().toIso8601String().split('T').first; // YYYY-MM-DD
-    final ref = _db.child('user_daily/$uid/lastDate');
+    final ref = _db.child('user_daily/$uid/lastClaimTimestamp');
     final event = await ref.once();
-    final last = event.snapshot.value as String?;
-    if (last == key) return false;
-    await ref.set(key);
-    await incrementUserCoins(uid, points);
-    return true;
+    final lastClaimTimestamp = event.snapshot.value as int?;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    if (lastClaimTimestamp != null) {
+      final twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
+      if (now - lastClaimTimestamp < twentyFourHoursInMillis) {
+        return false; // Not enough time has passed
+      }
+    }
+
+    // Use a transaction to ensure atomicity
+    final transactionResult = await ref.runTransaction((Object? currentValue) {
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      if (currentValue != null) {
+        final lastClaim = currentValue as int;
+        final twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
+        if (currentTime - lastClaim < twentyFourHoursInMillis) {
+          return Transaction.abort(); // Abort if another claim was made recently
+        }
+      }
+      return Transaction.success(currentTime);
+    });
+
+    if (transactionResult.committed) {
+      await incrementUserCoins(uid, points);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<bool> hasClaimedDailyBonus(String uid) async {
+    final ref = _db.child('user_daily/$uid/lastClaimTimestamp');
+    final event = await ref.once();
+    final lastClaimTimestamp = event.snapshot.value as int?;
+
+    if (lastClaimTimestamp == null) {
+      return false;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
+
+    return now - lastClaimTimestamp < twentyFourHoursInMillis;
   }
 
   /// Watch ad stub: award points immediately and record a simple event. Returns true on success.
